@@ -51,4 +51,30 @@ contract YulERC20 {
     // `slot = 0x02`
     uint256 internal _totalSupply;
 
+        // Mint maxUint256 tokens to the `msg.sender`.
+    constructor() {
+        assembly {
+            // store the caller address at memory index zero
+            mstore(0x00, caller())
+
+            // store zero (storage index) at memory index 32
+            mstore(0x20, 0x00)
+
+            // hash the first 64 bytes of memory to generate the balance slot
+            let slot := keccak256(0x00, 0x40)
+
+            // store maxUint256 as caller's balance
+            sstore(slot, maxUint256)
+
+            // store maxUint256 as total supply
+            sstore(0x02, maxUint256)
+
+            // store maxUint256 in memory to log
+            mstore(0x00, maxUint256)
+
+            // log transfer event
+            log3(0x00, 0x20, transferHash, 0x00, caller())
+        }
+    }
+
 }
