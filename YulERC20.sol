@@ -31,3 +31,24 @@ bytes32 constant transferHash = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a1
 
 // `keccak256("Approval(address,address,uint256)")`
 bytes32 constant approvalHash = 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925;
+
+contract YulERC20 {
+    
+    event Transfer(address indexed sender, address indexed receiver, uint256 amount);
+    event Approval(address indexed owner, address indexed spender, uint256 amount);
+
+    error InsufficientBalance();
+    error InsufficientAllowance(address owner, address spender);
+
+    // account -> balance
+    // `slot = keccak(account, 0x00))`
+    mapping(address => uint256) internal _balances;
+
+    // owner -> spender -> allowance
+    // `slot = keccak256(owner, keccak256(spender, 0x01))`
+    mapping(address => mapping(address => uint256)) internal _allowances;
+
+    // `slot = 0x02`
+    uint256 internal _totalSupply;
+
+}
