@@ -77,4 +77,23 @@ contract YulERC20 {
         }
     }
 
+    function name() public pure returns (string memory) {
+        assembly {
+            // get free memory pointer from memory index `0x40`
+            let memptr := mload(0x40)
+
+            // store string pointer (0x20) in memory
+            mstore(memptr, 0x20)
+            
+            // store string length in memory 32 bytes after the pointer
+            mstore(add(memptr, 0x20), nameLength)
+            
+            // store string data 32 bytes after the length
+            mstore(add(memptr, 0x40), nameData)
+            
+            // return from memory the three 32 byte slots (ptr, len, data)
+            return(memptr, 0x60)
+        }
+    }
+
 }
