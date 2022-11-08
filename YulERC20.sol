@@ -115,4 +115,14 @@ contract YulERC20 {
         }
     }
 
+    function decimals() public pure returns (uint8) {
+        assembly {
+            // store `18` in memory at slot zero
+            mstore(0, 18)
+
+            // return 32 bytes from memory at slot zero
+            return(0x00, 0x20)
+        }
+    }
+
 }
