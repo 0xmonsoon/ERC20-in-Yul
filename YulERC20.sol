@@ -125,4 +125,14 @@ contract YulERC20 {
         }
     }
 
+    function totalSupply() public view returns (uint256) {
+        assembly {
+            // load the total supply from storage slot 0x02 and store in memory
+            mstore(0x00, sload(0x02))
+
+            // return 32 bytes from memory at index zero
+            return(0x00, 0x20)
+        }
+    }
+
 }
