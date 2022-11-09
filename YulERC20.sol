@@ -135,4 +135,21 @@ contract YulERC20 {
         }
     }
 
+    function balanceOf(address) public view returns (uint256) {
+        assembly {
+            // load calldata offset 4 (first arg after selector) and store in memory at index zero
+            mstore(0x00, calldataload(4))
+
+            // store zero (storage index) at memory index 32
+            mstore(0x20, 0x00)
+
+            // load from storage the hash of the first 64 bytes of memory,
+            // then store the value in memory at offset zero
+            mstore(0x00, sload(keccak256(0x00, 0x40)))
+            
+            // return the first 32 bytes from memory (loaded balance)
+            return(0x00, 0x20)
+        }
+    }
+
 }
