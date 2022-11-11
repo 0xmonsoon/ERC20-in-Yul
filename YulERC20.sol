@@ -152,4 +152,76 @@ contract YulERC20 {
         }
     }
 
+    function transfer(address receiver, uint256 amount) public returns (bool) {
+        assembly {
+            // load free memory pointer from index 64
+            let memptr := mload(0x40)
+
+            // store the caller address at the free memory pointer
+            mstore(memptr, caller())
+
+            // store zero (storage index) in the next memory index
+            mstore(add(memptr, 0x20), 0x00)
+
+            // hash 64 bytes of memory to generate the caller's balance slot
+            let callerBalanceSlot := keccak256(memptr, 0x40)
+
+            // load the caller's balance
+            let callerBalance := sload(callerBalanceSlot)
+
+            // if the caller's balance is less than the amount
+            if lt(callerBalance, amount) {
+                // store the insufficient balance selector in memory at slot zero
+                mstore(0x00, insufficientBalanceSelector)
+
+                // revert with the 4 byte selector from memory
+                revert(0x00, 0x04)
+            }
+
+            // if the caller == receiver, revert
+            if eq(caller(), receiver) {
+                // we should have a better error message here,
+                // but we were short on time
+                revert(0x00, 0x00)
+            }
+
+            // decrease the caller's balance
+            let newCallerBalance := sub(callerBalance, amount)
+
+            // store the caller's balance in its slot
+            sstore(callerBalanceSlot, newCallerBalance)
+
+            // store the receiver address in memory at the memory pointer
+            // (overwrites some of the memory we have written to, but we don't need it anymore)
+            mstore(memptr, receiver)
+
+            // store zero (storage index) at a 32 byte offset
+            mstore(add(memptr, 0x20), 0x00)
+
+            // hash 64 bytes of memory to generate the receiver's balance slot
+            let receiverBalanceSlot := keccak256(memptr, 0x40)
+
+            // load the receiver's balance
+            let receiverBalance := sload(receiverBalanceSlot)
+
+            // increase receiver balance
+            let newReceiverBalance := add(receiverBalance, amount)
+
+            // store the receiver's balance
+            sstore(receiverBalanceSlot, newReceiverBalance)
+
+            // store the amount in memory to be logged
+            mstore(0x00, amount)
+
+            // log the transfer event
+            log3(0x00, 0x20, transferHash, caller(), receiver)
+
+            // store `true` in memory at index zero
+            mstore(0x00, 0x01)
+
+            // return the first 32 byte word of memory
+            return(0x00, 0x20)
+        }
+    }
+
 }
