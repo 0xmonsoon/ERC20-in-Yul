@@ -224,4 +224,41 @@ contract YulERC20 {
         }
     }
 
+    function approve(address spender, uint256 amount) public returns (bool) {
+        assembly {
+            // store the caller address
+            mstore(0x00, caller())
+
+            // store one (storage index) at memory index 32
+            mstore(0x20, 0x01)
+
+            // hash the first 64 bytes of memory to generate the inner hash
+            let innerHash := keccak256(0x00, 0x40)
+
+            // store the spender address at memory index zero
+            mstore(0x00, spender)
+
+            // store the inner hash at memory index 32
+            mstore(0x20, innerHash)
+
+            // hash the first 64 bytes of memory to generate the allowance slot
+            let allowanceSlot := keccak256(0x00, 0x40)
+
+            // store the new allowance in the allowance slot
+            sstore(allowanceSlot, amount)
+
+            // store the amount at memory index zero to be logged
+            mstore(0x00, amount)
+
+            // log the approval event
+            log3(0x00, 0x20, approvalHash, caller(), spender)
+
+            // store `true` at memory index zero
+            mstore(0x00, 0x01)
+
+            // return the first 32 byte word from memory
+            return(0x00, 0x20)
+        }
+    }
+
 }
