@@ -261,4 +261,35 @@ contract YulERC20 {
         }
     }
 
+    function allowance(address owner, address spender) public view returns (uint256) {
+        assembly {
+            // store owner address at memory index zero
+            mstore(0x00, owner)
+
+            // store one (storage index) at memory index 32
+            mstore(0x20, 0x01)
+
+            // hash the first 64 bytes of memory to generate the inner hash
+            let innerHash := keccak256(0x00, 0x40)
+
+            // store the spender address at memory index zero
+            mstore(0x00, spender)
+
+            // store the inner hash at memory index 32
+            mstore(0x20, innerHash)
+
+            // hash the first 64 bytes of memory to generate the allowance slot
+            let allowanceSlot := keccak256(0x00, 0x40)
+
+            // load the allowance from storage
+            let allowanceAmount := sload(allowanceSlot)
+
+            // store the allowance at memory index zero
+            mstore(0x00, allowanceAmount)
+
+            // return the first 32 byte word from memory
+            return(0x00, 0x20)
+        }
+    }
+
 }
