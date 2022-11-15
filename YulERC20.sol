@@ -292,4 +292,110 @@ contract YulERC20 {
         }
     }
 
+    function transferFrom(address sender, address receiver, uint256 amount) public returns (bool) {
+        assembly {
+            // load the free memory pointer from memory index 64
+            let memptr := mload(0x40)
+
+            // store the sender address at memory index zero
+            mstore(0x00, sender)
+
+            // store one (storage index) at memory index 32
+            mstore(0x20, 0x01)
+
+            // hash the first 64 bytes of memory to generate the inner hash
+            let innerHash := keccak256(0x00, 0x40)
+
+            // store the caller (spender) at memory index zero
+            mstore(0x00, caller())
+
+            // store the inner hash at memory index 32
+            mstore(0x20, innerHash)
+
+            // hash the first 64 bytes of memory to generate the allowance slot
+            let allowanceSlot := keccak256(0x00, 0x40)
+
+            // load the caller's allowance to spend on behalf of the sender
+            let callerAllowance := sload(allowanceSlot)
+
+
+            // if the caller's allowance is less than the amount
+            if lt(callerAllowance, amount) {
+
+                // store the insufficient allowance error selector at the free memory pointer
+                mstore(memptr, insufficientAllowanceSelector)
+
+                // store the sender in memory after the four byte selector
+                mstore(add(memptr, 0x04), sender)
+
+                // store the caller in memory after the sender
+                mstore(add(memptr, 0x24), caller())
+
+                // revert with 68 (4 + 32 + 32) bytes of memory
+                revert(memptr, 0x44)
+            }
+
+
+            // if the caller allowance is less than the max uint256 value (infinite)
+            if lt(callerAllowance, maxUint256) {
+                // subtract the amount from the allowance and store it in storage
+                sstore(allowanceSlot, sub(callerAllowance, amount))
+            }
+
+            // store the sender address in memory at the free memory pointer
+            mstore(memptr, sender)
+
+            // store zero (storage index) after the sender address 
+            mstore(add(memptr, 0x20), 0x00)
+
+            // hash 64 bytes of memory starting at the free memory pointer to generate the balance slot
+            let senderBalanceSlot := keccak256(memptr, 0x40)
+
+            // load the sender balance
+            let senderBalance := sload(senderBalanceSlot)
+
+
+            // if the sender balance is less than the amount
+            if lt(senderBalance, amount) {
+                // store the insufficient balance selector in memory
+                mstore(0x00, insufficientBalanceSelector)
+
+                // revert with the error selector
+                revert(0x00, 0x04)
+            }
+
+
+            // subtract the amount from the sender balance and store it
+            sstore(senderBalanceSlot, sub(senderBalance, amount))
+
+            // store the receiver address in memory at the free memory pointer
+            mstore(memptr, receiver)
+
+            // store zero (storage index) after the receiver address 
+            mstore(add(memptr, 0x20), 0x00)
+
+            // hash 64 bytes of memory starting at the free memory pointer to generate the balance slot
+            let receiverBalanceSlot := keccak256(memptr, 0x40)
+
+            // load the sender balance
+            let receiverBalance := sload(receiverBalanceSlot)
+
+            // add the amount and the receiver balance and store it
+            sstore(receiverBalanceSlot, add(receiverBalance, amount))
+
+            // store the amount in memory to be logged
+            mstore(0x00, amount)
+
+            // log the transfer event
+            log3(0x00, 0x20, transferHash, sender, receiver)
+
+
+            // store `true` in memory at slot zero
+            mstore(0x00, 0x01)
+
+            // return the first 32 byte word from memory
+            return(0x00, 0x20)
+        }
+    }
+
 }
